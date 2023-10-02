@@ -1,0 +1,10 @@
+#NEXUS
+BEGIN NETWORKS;
+Network net = (((A1:4,A0:4):1,A2:5):5,((B1:1,B0:1):4,B2:5):5);
+END;
+
+
+BEGIN PHYLONET;
+simGTinNetwork net 4 -ms "/N/u/moyu/BigRed200/bin/msdir/ms";
+END;
+
