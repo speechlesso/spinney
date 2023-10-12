@@ -66,6 +66,31 @@ def branch_rate_family(treeobj, sptree, rate_tree=None):
     #  zip([se for se in self.sptree.preorder_edge_iter()], [re for re in self.rate_tree.preorder_edge_iter()])]
     return treeobj
 
+def parse_trees(treefile):
+    '''
+    Parse newick trees from given format
+    '''
+    with open(treefile, 'r') as f:
+        lines = f.readlines()
+
+    # Remove any whitespace or newline characters from each line
+    lines = [line.strip() for line in lines]
+
+    # Check where the genetrees and genetreefreqs sections start and end
+    begin_genetrees = lines.index("begin genetrees;")
+    end_genetrees = lines.index("end;")
+    begin_genetreefreqs = lines.index("begin genetreefreqs;")
+
+    # Extract gene trees and their frequencies
+    genetreesnwk = lines[begin_genetrees + 1:end_genetrees]
+    genetreefreqs = lines[begin_genetreefreqs + 1:-1]  # -1 to exclude the "end;" line
+
+    # Convert frequencies from string to float
+    genetreefreqs = [float(freq) for freq in genetreefreqs]
+
+    tree_weights = dict(zip(genetreesnwk, genetreefreqs))
+
+    return tree_weights
 
 def get_speciation_time(tree):
     brs = [x.edge_length for x in tree.leaf_nodes()]

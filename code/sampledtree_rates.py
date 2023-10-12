@@ -93,6 +93,15 @@ if __name__ == "__main__":
                     for sedge, redge in \
                     zip([se for se in sptree.preorder_edge_iter()], [re for re in ratetree.preorder_edge_iter()])}
 
+    # read newick gene trees with weight
+    tree_weights = parse_trees(args.genetrees)
+    genetrees = []
+    for t, freq in tree_weights.items():
+        genetrees.append( dendropy.Tree.get(data=t, schema="newick", taxon_namespace=sptree.taxon_namespace) )
+        genetrees[-1].weight = freq
+
+    args.N = len(genetrees)
+
     # TRAIT
     sim_ancester = pd.read_csv(args.f)
     traits = sim_ancester
@@ -103,18 +112,18 @@ if __name__ == "__main__":
 
     expect_trait = lambda x, y: sum(x.trait_vec * y.state) / sum(y.state)
     for num in range(50):
-        np.random.seed(num)
+        # np.random.seed(num)
         # trees = [ nwk2tree(x) for x in np.random.choice(nwkstring, size=args.N)]
-        trees = [dendropy.Tree.get(data=newick_tree, schema="newick", taxon_namespace=sptree.taxon_namespace) \
-                  for newick_tree in np.random.choice(nwkstring, size=args.N)]
-        for treeno, t in enumerate(trees):
+        # trees = [dendropy.Tree.get(data=newick_tree, schema="newick", taxon_namespace=sptree.taxon_namespace) \
+                  # for newick_tree in np.random.choice(nwkstring, size=args.N)]
+        for treeno, t in enumerate(genetrees):
             [time_slice_node( t, 1.001 * timeslice ) for timeslice in speciation_time]
             segment_mapping(sptree, t, speciation_time)
             for node in t.nodes():
                 if hasattr(node.edge, 'sp_segment'):
                     setattr(node, 'rate_family', segment2rate[node.edge.sp_segment]-1)
                 # node.comments = segment2rate[node.edge.sp_segment] - 1
-            t.weight = 1/len(trees)
+            # t.weight = 1/len(trees)
 
             for idx, x in enumerate(t.preorder_node_iter()):
                 try:
