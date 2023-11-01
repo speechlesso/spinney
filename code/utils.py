@@ -550,7 +550,7 @@ class tree_llh_continous():
         return cov
 
 
-    def initialize_pruning(self, tip_trait, tree_height, vec_size = 200):
+    def initialize_pruning(self, tip_trait, tree_height, vec_size = 100):
         '''
         INITIALIZE FOR ONE TRAIT EVERY TIME!
         THE TRAIT RANGE VARIES DEPENDING ON TIP TRAITS!
@@ -569,7 +569,11 @@ class tree_llh_continous():
 
         # avoid introducing mle for disctretize trait
         dev =  np.sqrt( tree_height )
-        self.trait_vec = np.linspace(min_val - 5*dev, max_val + 5*dev, vec_size).flatten()
+        self.trait_vec = np.linspace(min_val - 10*dev, max_val + 10*dev, vec_size).flatten()
+
+        # max_val = max(([abs(v) for v in tip_trait.values()]))
+        # self.trait_vec = np.linspace(-2*max_val, 2*max_val, vec_size).flatten()
+        # print(self.trait_vec[[0, -1]], min_val, max_val, dev)
 
         # calculate state of tips
         tip_state = {}
@@ -660,8 +664,9 @@ class tree_llh_continous():
 
     def expected_trait(self):
         for clade in self.tree.nodes():
-            trait_temp = sum((self.trait_range * clade.state))/sum(clade.state)
+            trait_temp = sum((self.trait_vec * clade.state))/sum(clade.state)
             setattr(clade, 'trait', trait_temp)
+            print(clade, trait_temp)
 
 
 #%%
