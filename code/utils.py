@@ -1,14 +1,3 @@
-# import numpy as np
-# from Bio import Phylo
-# from io import StringIO
-# from itertools import product, combinations
-# from math import *
-# import re
-# from collections import Counter
-# import matplotlib.pyplot as plt
-# import pandas as pd
-# import sys
-
 import numpy as np
 import pandas as pd
 from Bio import Phylo
@@ -17,12 +6,11 @@ from scipy.optimize import minimize
 from itertools import product, combinations
 import math
 from math import pi
-import matplotlib.pyplot as plt
 import copy, pickle, re
 import dendropy, ete3
 
 
-#%% Tree process
+#%% TREE process
 def read_nwk_trees(treefile):
     # read newick trees from a file
     nwks = []
@@ -67,16 +55,12 @@ def branch_rate_family(treeobj, sptree, rate_tree=None):
     return treeobj
 
 def parse_trees(treefile):
-    '''
-    Parse newick trees from given format
-    '''
     with open(treefile, 'r') as f:
         lines = f.readlines()
-
     # Remove any whitespace or newline characters from each line
     lines = [line.strip() for line in lines]
 
-    # Check where the genetrees and genetreefreqs sections start and end
+    # Check where the gene trees and genetree freqs sections start and end
     begin_genetrees = lines.index("begin genetrees;")
     end_genetrees = lines.index("end;")
     begin_genetreefreqs = lines.index("begin genetreefreqs;")
@@ -193,6 +177,9 @@ def get_3taxa_newick(N, t1=4000, t2=50000):
 
 
 def segment_mapping(sptree, genetree, speciation_time):
+    '''
+    Assign rate from the species tree to each segment of a gene tree
+    '''
     # speciation_time.sort()
     # input species tree, map each edge to an integer
     leaf_names = [x.taxon.label for x in sptree.leaf_nodes()]
@@ -212,24 +199,20 @@ def segment_mapping(sptree, genetree, speciation_time):
                   for leaf in sptree.leaf_node_iter()\
                   if leaf.taxon.label == leaf_taxon][0]
         # edge x : root------ tail ---x--- head
-        # node.edge <-> edge.head_node
         for edge in gpath:
             try:
                 # avoid redundant assigning
                 edge.sp_segment
             except AttributeError:
-                # find mapped br in sptree
-                #idx = [ round( edge.head_node.distance_from_tip(), 10) >= t for t in speciation_time ]
+                # find mapped branch in sptree
                 idx = [edge.head_node.distance_from_tip() >= t for t in speciation_time]
 
                 if any(idx):# non-terminal edge
                     distance2tip = max([ t for t, flag in zip(speciation_time, idx) if flag ])
                 else:  # terminal edge
                     distance2tip = 0.0
+                
                 mapped_sedge = [se for se in spath if se.head_node.distance_from_tip()  <= distance2tip]
-
-                #mapped_sedge = [se for se in spath if se.head_node.distance_from_tip() >= distance2tip]
-                #print(leaf_taxon, [sedge2int[x] for x in mapped_sedge])
                 setattr( edge, 'sp_segment', sedge2int[mapped_sedge[-1]] )
     # root node
     # [edge for edge in genetree.preorder_edge_iter()][0].sp_segment = -1
@@ -318,7 +301,6 @@ class build_gene_tree():
             # print('Incorrect tree input!')
             raise IncorrectTreeInput
 
-
         # LS gene tree 1: ((A:m, B:n)l, C:k);
         m = x + ( 1 - z/(np.exp(z)-1) )
         n = x + ( 1 - z/(np.exp(z)-1) )
@@ -326,19 +308,13 @@ class build_gene_tree():
         l = k - m
         n1, n2, n3 = tipname
         gt1_nwk = '[&R] ((%s:%.10f, %s:%.10f):%.10f, %s:%.10f);' %(n1, m, n2, n, l, n3, k)
-        # gt1_nwk = '((((%s:%.5f)T11:%.5f, (%s:%.5f)T12:%.5f)C1:%.5f)T21:%.5f, (%s:%.5f)T22:%.5f)C2:0.0;' %(n1, x, m-x, n2, x, n-x, x+z-m, m+l-(x+z), n3, y, k-y)
-
+       
         # calc repeated values
         k = tip2root = (x + z) + 4/3
         m = tip2inter= (x + z) + 1/3
         inter = 1.0
 
         # ILS trees
-        #gt2_nwk = '((((%s:%.5f)T1:%.5f)T2:%.5f, ((%s:%.5f)T1:%.5f)T2:%.5f)C1:%.5f, ((%s:%.5f)T1:%.5f)T2:%.5f)C2:0.0;' %(n1, x, z, m-(x+z), n2, x, z, m-(x+z), k-m, n3, x, z, k-(x+z))
-        # gt2_nwk = '((((%s:%.5f)T11:%.5f)T21:%.5f, ((%s:%.5f)T12:%.5f)T22:%.5f)C1:%.5f, ((%s:%.5f)T13:%.5f)T23:%.5f)C2:0.0;' %(n1, x, z, m-(x+z), n2, x, z, m-(x+z), k-m, n3, x, z, k-(x+z))
-        # gt3_nwk = '((((%s:%.5f)T11:%.5f)T21:%.5f, ((%s:%.5f)T12:%.5f)T22:%.5f)C1:%.5f, ((%s:%.5f)T13:%.5f)T23:%.5f)C2:0.0;' %(n2, x, z, m-(x+z), n3, x, z, m-(x+z), k-m, n1, x, z, k-(x+z))
-        # gt4_nwk = '((((%s:%.5f)T11:%.5f)T21:%.5f, ((%s:%.5f)T12:%.5f)T22:%.5f)C1:%.5f, ((%s:%.5f)T13:%.5f)T23:%.5f)C2:0.0;' %(n1, x, z, m-(x+z), n3, x, z, m-(x+z), k-m, n2, x, z, k-(x+z))
-
         gt2_nwk = '[&R] ((%s:%.10f, %s:%.10f):%.10f, %s:%.10f);' %(n1, tip2inter, n2, tip2inter, inter, n3, tip2root)
         gt3_nwk = '[&R] ((%s:%.10f, %s:%.10f):%.10f, %s:%.10f);' %(n2, tip2inter, n3, tip2inter, inter, n1, tip2root)
         gt4_nwk = '[&R] ((%s:%.10f, %s:%.10f):%.10f, %s:%.10f);' %(n1, tip2inter, n3, tip2inter, inter, n2, tip2root)
@@ -358,38 +334,130 @@ class build_gene_tree():
             if add_timeslice:
                 gt = time_slice_node(gt,T1)
                 gt = time_slice_node(gt,T2)
-                #rename_internal(gt)
             gts.append( gt )
         return gts
+    
+
+#%% Class for calculating likelihood for continous trait
+class tree_llh_continuous():
+    def __init__(self, treeobj):
+        self.tree = copy.deepcopy(treeobj, vec_size=100)
+        self.tree.root = self.tree.nodes()[0]
+        self.ordered_vertices = [x for x in self.tree.postorder_node_iter()]
+        
+        self.node_to_num = {n:i for i, n in \
+                            enumerate([x for x in self.tree.postorder_node_iter() ])}
+        self.num_to_node = {v : k for k, v in self.node_to_num.items()}
+        self.stationary = np.ones(vec_size)/vec_size
+
+    def C_mat(self):
+        # construct covariance matrix
+        # as non censored method in O'Meara 2006 
+
+        # diag elements
+        leaves = sorted(self.tree.leaf_nodes(), key=lambda x: x.taxon.label)
+        cov = np.diag( self.tree.calc_node_root_distances() )
+        # off-diag elements
+        tip_to_num = {n.taxon:i for i, n in enumerate(leaves)}
+        leaves_pair = [(t1, t2) for t1,t2 in combinations(leaves, 2)]
+
+        for pair in leaves_pair:
+            taxon1, taxon2 = pair
+            mrca = common_ancestor(self.tree, pair)
+            r, c = [tip_to_num[x.taxon] for x in pair]
+            cov[r,c] = cov[c,r] = mrca.distance_from_root()
+        return cov
 
 
-#%% Brownian Motion process
-# helper function
+    def initialize_pruning(self, tip_trait, tree_height, vec_size = 100):
+        '''
+        INITIALIZE FOR ONE TRAIT EVERY TIME!
+        THE TRAIT RANGE VARIES DEPENDING ON TIP TRAITS!
+
+        tip_trait:a dict {leavename:single_trait_value}
+        vec_size: vector length for range of trait
+        '''
+
+        # discretize continous traits
+        max_val = max(  ([v for v in tip_trait.values()])  )
+        min_val = min(  ([v for v in tip_trait.values()])  )
+        dev =  np.sqrt( tree_height )
+        self.trait_vec = np.linspace(min_val - 10*dev, max_val + 10*dev, vec_size).flatten()
+
+        # calculate state of tips
+        tip_state = {}
+        for key, val in tip_trait.items():
+            temp_vec = np.zeros(self.trait_vec.size)
+            # trait value matches one in discretized vector exactly
+            val_index = np.argwhere(self.trait_vec==val).flatten()
+            if len(val_index) != 0:
+                temp_vec[val_index] = 1.0
+            else:
+                # trait value falls btween two numbers corresponding to trait range, e.g. 0.5 in [0,1]
+                upperind = np.min( np.argwhere(self.trait_vec>val) )
+                lowerind = upperind -1
+                stepsize = self.trait_vec[upperind] - self.trait_vec[lowerind]
+                weight = (val - self.trait_vec[lowerind])/stepsize
+                temp_vec[upperind] = weight
+                temp_vec[upperind-1] = 1 - temp_vec[upperind]
+            tip_state.update({key:temp_vec})
+
+        for leaf in self.tree.leaf_nodes():
+            setattr(leaf, 'state', tip_state[leaf.taxon.label])
+
+
+    def calc_llh_with_tree(self, rate):
+        nstate = self.stationary.size
+        # initialize state for internal nodes
+        for clade in self.tree.internal_nodes():
+            setattr(clade, 'state', np.zeros(nstate))
+
+        # cache probability density matrix for trees
+        for clade in self.ordered_vertices:
+            if clade == self.tree.root:
+                setattr(clade, 'probmat', np.eye(nstate))
+            else:
+                prob_mat = np.zeros((nstate, nstate))
+                for row in range(nstate):
+                    for col in range(row+1):
+                        prob_mat[row,col] = bm_prob_density(self.trait_vec[col], 
+                                                            self.trait_vec[row], 
+                                                            rate[clade.rate_family], 
+                                                            clade.edge_length)
+                        prob_mat[col,row] = prob_mat[row,col]
+                row_sum = prob_mat.sum(axis = 1)
+                setattr(clade, 'probmat', prob_mat/row_sum)
+
+        # pruning algorithm
+        for parent in self.tree.postorder_internal_node_iter():
+            child_llh = [child.probmat @ child.state for child in parent.child_nodes() ]
+            if len(child_llh) == 1:
+                parent.state = child_llh[0]
+            else:
+                # consider two children at most
+                parent.state = child_llh[0] * child_llh[1]
+
+        negative_llh =  - np.log( self.stationary.dot(self.tree.root.state)  )
+        return negative_llh
+
+
+    def expected_trait(self):
+        for clade in self.tree.nodes():
+            trait_temp = sum((self.trait_vec * clade.state))/sum(clade.state)
+            setattr(clade, 'trait', trait_temp)
+            print(clade, trait_temp)
+
+
+
+#%% HELPER FUNCTION FOR LIKLIHOOD
 def bm_prob_density(x, x0, sigma2, t):
-    # x:trait value; x0: initial value; sigma: rate; t:branch length
+    # x:trait value; x0: initial value; sigma2: rate; t:branch length
     t = t if t!=0 else 1e-8 # avoid divided by zero
     coef1 = 1/((2*pi*t*sigma2)**0.5)
     coef2 = -(x-x0)**2/(2*sigma2*t)
     prob = coef1*np.exp(coef2)
     return prob
 
-'''
-def BM_process(traitval, t, rate, tip_state):
-    # Brownian motion along branch
-    prob_den_mat = prob_den_matrix(traitval, rate, t)
-    new_state = tip_state@prob_den_mat
-    #new_state = normalization(tip_state@prob_mat, traitval)
-    new_state = new_state/sum(new_state)
-    #plot_contour(traitval,traitval,prob_mat)
-    return new_state
-def normalization(row, traitval):
-    # TODO: UNDERSTAND THE FUNCTION AND DEBUG
-    # more like a smoothing instead of normalization
-    # reference: CAGEE line 106 in DiffMat.cpp
-    # NOT intended for summing up to 1
-    normalized_row = row*(traitval.size-1)/(traitval[-1]-traitval[0])
-    return normalized_row
-'''
 
 def mle_sigma2(leaves, tip_trait, cov):
     leaves_name = [x.taxon.label for x in leaves]
@@ -403,7 +471,6 @@ def mle_sigma2(leaves, tip_trait, cov):
     return ( (x-a).T @ inv_c @ (x-a)/n_taxa )[0][0]
 
 
-
 def llh_surface(tip_trait, cov, sigma2):
     n_taxa = len(tip_trait)
     sort_key = [k for k in tip_trait.keys() ]
@@ -415,10 +482,21 @@ def llh_surface(tip_trait, cov, sigma2):
 
     denom = np.exp(-0.5 * (x - np.mean(x)).T @ inv_c @ (x - np.mean(x)))
     nome = np.sqrt((2*np.pi)**n_taxa * det_c)
-
     return -np.log(denom/nome).flatten()[0]
 
-#%% simulator continous trait
+
+def calc_llh_per_tree(x):
+    rates, llhobj  = x
+    return llhobj.calc_llh_with_tree(rates) * llhobj.tree.weight
+
+
+def init_llh_per_tree(x):
+    llhobj, tip_trait, tree_height = x
+    llhobj.initialize_pruning(tip_trait, tree_height)
+    return llhobj
+
+
+#%% continous trait simulator
 def get_continous_trait(mean, cov_mat, seed=None):
     # construct cov_var matrix then sample trait for the tips.
     if seed != None:
@@ -457,11 +535,9 @@ def sim_ancestral_state(tree, rate, root_dist=None, seed=None):
         if parent == tree.root:
             setattr(parent, 'simtrait', root_dist)
         for child in parent.clades:
-            trait_temp = np.random.normal(loc = parent.simtrait, scale = np.sqrt(child.branch_length * rate[child.rate_family]) )
+            trait_temp = np.random.normal(loc = parent.simtrait, 
+                                          scale = np.sqrt(child.branch_length * rate[child.rate_family]) )
             setattr(child, 'simtrait', trait_temp)
-#
-# t = nwk2tree("[&R] ((sp1:2,sp2:2):2,sp3:4);")
-# t = time_slice_node(t, 1)
 '''
 #### TEST FOR sim_ancestral_state with single rate
 t = nwk2tree("[&R] ((sp1:2,sp2:2):2,sp3:4);")
@@ -470,216 +546,8 @@ assign_branch_rate(t, 0.5)
 sim_ancestral_state(t,root_dist = 10)
 '''
 
-class coutinous_trait_state():
-    def __init__(self,tipstate, variance=1.0, len_vec=200):
-        self.tipstate = tipstate
-        self.variance = variance
-        self.traitval = self.get_discrete_trait(len_vec)
 
-    # discretize trait value
-    def get_discrete_trait(self, num=200):
-        # observed_vec: observed values in tips; num: length of vector
-        max_val = max(  ([abs(v) for v in self.tipstate.values()])  )
-        #return np.linspace(-1.5*self.variance, 1.5*self.variance, num)
-        return np.linspace(-1.5*(max_val+self.variance), 1.5*(max_val+self.variance), num)
-        #return np.linspace(-10, 10, num)
-
-    def trait_upper_weight(self, val):
-        upperind = np.min( np.argwhere(self.traitval>val) )
-        lowerind = upperind -1
-        stepsize = self.traitval[upperind] - self.traitval[lowerind]
-        return upperind, (val - self.traitval[lowerind])/stepsize
-
-    # probability vector for leaves
-    def tip_prob_vec(self):
-        tip_state = {}
-        for key, val in self.tipstate.items():
-            temp_vec = np.zeros(self.traitval.size)
-            # trait value matches one in discretized vector exactly
-            val_index = np.argwhere(self.traitval==val).flatten()
-            if len(val_index) != 0:
-                temp_vec[val_index] = 1.0
-            else:
-            # trait value falls btween two numbers, e.g. 0.5 in [0,1]
-                upper, weight = self.trait_upper_weight(val)
-                temp_vec[upper] = weight
-                temp_vec[upper-1] = 1 - temp_vec[upper]
-            tip_state.update({key:temp_vec})
-        return tip_state
-
-#%% class for likelihood calculation
-class tree_llh_continous():
-    def __init__(self, treeobj):
-        self.tree = copy.deepcopy(treeobj)
-        self.initialization()
-
-
-        #self.coal1, self.coal2 = get_speciation_time(treeobj)
-        #self.tip_trait_arr  = np.array([self.tip_trait[x.name] for x in self.tree.get_terminals() ])
-        #self.cov = self.C_mat()
-
-    def initialization(self, vec_size=200):
-        self.tree.root = self.tree.nodes()[0]
-        allclades = [x for x in self.tree.postorder_node_iter() ]
-        self.node_to_num = {n:i for i, n in enumerate(allclades)}
-        self.num_to_node = {v : k for k, v in self.node_to_num.items()}
-
-        self.ordered_vertices = [x for x in self.tree.postorder_node_iter()]
-        self.leaves = sorted(self.tree.leaf_nodes(), key= lambda x: x.taxon.label)
-        for leaf in self.leaves:
-          setattr(leaf, 'state', np.zeros(vec_size))
-
-        self.stationary = np.ones(vec_size)/vec_size
-
-    def C_mat(self):
-        # construct var_cov matrix with branch info
-
-        # covariance matrix
-        # diag elements
-        leaves = sorted(self.tree.leaf_nodes(), key=lambda x: x.taxon.label)
-        cov = np.diag( self.tree.calc_node_root_distances() )
-        # off-diag elements
-        tip_to_num = {n.taxon:i for i, n in enumerate(leaves)}
-        leaves_pair = [(t1, t2) for t1,t2 in combinations(leaves, 2)]
-
-        for pair in leaves_pair:
-            taxon1, taxon2 = pair
-            mrca = common_ancestor(self.tree, pair)
-            r, c = [tip_to_num[x.taxon] for x in pair]
-            cov[r,c] = cov[c,r] = mrca.distance_from_root()
-        return cov
-
-
-    def initialize_pruning(self, tip_trait, tree_height, vec_size = 100):
-        '''
-        INITIALIZE FOR ONE TRAIT EVERY TIME!
-        THE TRAIT RANGE VARIES DEPENDING ON TIP TRAITS!
-
-        tip_trait:a dict {leavename:single_trait_value}
-        vec_size: vector length for range of trait
-        '''
-
-        # discretize continous traits
-        max_val = max(  ([v for v in tip_trait.values()])  )
-        min_val = min(  ([v for v in tip_trait.values()])  )
-
-        ### DEBUG
-        # mle = self.mle_sigma2(tip_trait)
-        # mle = mle if mle > 0 else 1 # sampled trees may lead to negative estimation
-
-        # avoid introducing mle for disctretize trait
-        dev =  np.sqrt( tree_height )
-        self.trait_vec = np.linspace(min_val - 10*dev, max_val + 10*dev, vec_size).flatten()
-
-        # max_val = max(([abs(v) for v in tip_trait.values()]))
-        # self.trait_vec = np.linspace(-2*max_val, 2*max_val, vec_size).flatten()
-        # print(self.trait_vec[[0, -1]], min_val, max_val, dev)
-
-        # calculate state of tips
-        tip_state = {}
-        for key, val in tip_trait.items():
-            temp_vec = np.zeros(self.trait_vec.size)
-            # trait value matches one in discretized vector exactly
-            val_index = np.argwhere(self.trait_vec==val).flatten()
-            if len(val_index) != 0:
-                temp_vec[val_index] = 1.0
-            else:
-                # trait value falls btween two numbers corresponding to trait range, e.g. 0.5 in [0,1]
-                upperind = np.min( np.argwhere(self.trait_vec>val) )
-                lowerind = upperind -1
-                stepsize = self.trait_vec[upperind] - self.trait_vec[lowerind]
-                weight = (val - self.trait_vec[lowerind])/stepsize
-                temp_vec[upperind] = weight
-                temp_vec[upperind-1] = 1 - temp_vec[upperind]
-            tip_state.update({key:temp_vec})
-
-
-        for leaf in self.tree.leaf_nodes():
-            setattr(leaf, 'state', tip_state[leaf.taxon.label])
-
-        # stationary distribution
-        self.stationary = np.ones(vec_size)/vec_size
-
-    def calc_llh_with_tree(self, rate):
-        nstate = self.stationary.size
-        # initialize state for internal nodes
-        for clade in self.tree.internal_nodes():
-            setattr(clade, 'state', np.zeros(nstate))
-
-        # cache probability density matrix for trees
-        for clade in self.ordered_vertices:
-            if clade == self.tree.root:
-                setattr(clade, 'probmat', np.eye(nstate))
-            else:
-            # leaf to root
-                prob_mat = np.zeros((nstate, nstate))
-                for row in range(nstate):
-                    for col in range(row+1):
-                        prob_mat[row,col] = bm_prob_density(self.trait_vec[col], self.trait_vec[row], rate[clade.rate_family], clade.edge_length)
-                        prob_mat[col,row] = prob_mat[row,col]
-                row_sum = prob_mat.sum(axis = 1)
-                #row_sum = 1
-                setattr(clade, 'probmat', prob_mat/row_sum)
-
-
-        # pruning algorithm
-        '''
-        for v in self.tree.get_nonterminals('postorder'):
-            for a in range(nstate):
-                node_llh_temp = 1.0
-                for child in v.clades:
-                    temp = child.probmat[:,a].dot(child.state)
-                    node_llh_temp *= temp
-                v.state[a] = node_llh_temp
-        '''
-        for v in self.tree.postorder_internal_node_iter():
-            child_llh = [child.probmat @ child.state for child in v.child_nodes() ]
-            if len(child_llh) == 1:
-                v.state = child_llh[0]
-            else:
-                # consider two children at most
-                v.state = child_llh[0] * child_llh[1]
-                # print(child_llh)
-                # v.state = np.prod([x for x in child_llh])
-
-
-        llh = np.log( self.stationary.dot(self.tree.root.state)  )
-        # print('%.3f\t%.3e\t%.3f' %(llh,rate[0],rate[1]))
-        # if llh > 0 :
-        #     print()
-        return -llh
-
-    def mle_sigma2(self, data):
-        # single rate MLE of sigma^2 from O'meara2006
-        # MLE esitmator
-        n_taxa = len(self.leaves)
-        ones = np.ones([n_taxa, 1])
-        x = np.array([data[x.taxon.label] for x in self.leaves]).reshape(n_taxa,1)
-        c = self.C_mat()
-        inv_c = np.linalg.inv(c)
-        a = 1/(ones.T @ inv_c @ ones)*(ones.T @ inv_c @ x)
-        sigma2 = ( (x-a).T @ inv_c @ (x-a) ).flatten()/n_taxa
-        return sigma2
-
-
-    def expected_trait(self):
-        for clade in self.tree.nodes():
-            trait_temp = sum((self.trait_vec * clade.state))/sum(clade.state)
-            setattr(clade, 'trait', trait_temp)
-            print(clade, trait_temp)
-
-
-#%%
-def calc_llh_per_tree(x):
-    rates, llhobj  = x
-    return llhobj.calc_llh_with_tree(rates) * llhobj.tree.weight
-
-def init_llh_per_tree(x):
-    llhobj, tip_trait, tree_height = x
-    llhobj.initialize_pruning(tip_trait, tree_height)
-    return llhobj
-
-#%% helper functions
+#%% OTHER HELPER FUNCTION
 def g(i,j,T):
     prob = 0
     for k in range(j, i+1):
@@ -694,8 +562,6 @@ def four_taxa_concordance(T2, T3):
     prob = g(2,1,T3)*( g(2,1,T2) + g(2,2,T2)/3) \
            + g(2,2,T3)*(g(3,1,T2)/3 + g(3,2,T2)/9 + g(3,3,T2)/18)
     return prob
-
-four_taxa_concordance(2,2)
 
 def branch_scale_coef(discord=1e-3):
     N1 = effect_N(1e-3)
@@ -718,14 +584,6 @@ def sptree_4taxa(N=2000, t4=4000, t3=50000, t2=90000):
     #print('The discordance is {:.3f}% with N = {:0d}'.format(dis*100, N))
     newick_tree = '(((sp1:%.4f,sp2:%.4f):%.4f,sp3:%.4f):%.4f,sp4:%.4f);'%(x,x,y-x,y,z-y,z)
     return newick_tree, disc
-
-# for x in [4,12,20]:
-#     nwk, disc = sptree_4taxa(x*1000)
-#     print(disc)
-#
-# disc = [sptree_4taxa(n*1000)[1] for n in range(2,25)]
-# plt.plot(range(2,25), disc, '-o')
-
 
 def calc_stat(state, traitval):
     mean = np.sum(state*traitval)
