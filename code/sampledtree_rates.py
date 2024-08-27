@@ -2,9 +2,6 @@
 from utils import *
 import argparse, os, time, re
 from multiprocessing import Pool
-import threading
-
-NUM_PROCESS = 1
 
 def opt_func_pool(rates, llhobjs):
     with Pool(NUM_PROCESS) as pool:
@@ -35,7 +32,7 @@ def rate_inference(tip_trait, trees, outfile, num, condition):
     cstar_est = mle_sigma2(sorted(trees[0].leaf_nodes(), key=lambda x: x.taxon.label), tip_trait, cstar_mat)
 
     # inference
-    res = minimize(opt_func,
+    res = minimize(opt_func_pool,
                    init_rates,
                    args=(llhobjs),
                    method='Nelder-Mead',
@@ -62,8 +59,11 @@ if __name__ == "__main__":
     parser.add_argument('-ratetree', help='rate family file', type=str, default=None)
     parser.add_argument('-condition', help='comments',type=str,default='')
     parser.add_argument('-timeslice', help='add internal unifurcated nodes', type=int, default=None)
+    parser.add_argument('-num_process', help='Number of process for parallelization', type=int, default=5)
 
     args = parser.parse_args()
+    global NUM_PROCESS
+    NUM_PROCESS = args.num_process
 
     # TREE
     nwkstring = read_nwk_trees(args.genetrees)
@@ -98,11 +98,11 @@ if __name__ == "__main__":
     args.N = len(genetrees)
     # Assign rate to each segment in all gene trees
     for _, t in enumerate(genetrees):
-    [time_slice_node( t, 1.00001 * timeslice ) for timeslice in speciation_time]
-    segment_mapping(sptree, t, speciation_time)
-    for node in t.nodes():
-        if hasattr(node.edge, 'sp_segment'):
-            setattr(node, 'rate_family', segment2rate[node.edge.sp_segment]-1)
+        [time_slice_node( t, 1.00001 * timeslice ) for timeslice in speciation_time]
+        segment_mapping(sptree, t, speciation_time)
+        for node in t.nodes():
+            if hasattr(node.edge, 'sp_segment'):
+                setattr(node, 'rate_family', segment2rate[node.edge.sp_segment]-1)
 
     # TRAIT
     traits = pd.read_csv(args.f, comment = "#", dtype=float)
