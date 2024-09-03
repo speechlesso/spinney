@@ -1,0 +1,8 @@
+#NEXUS
+BEGIN NETWORKS;
+Network sptree=[&R] SPTREE
+END;
+
+BEGIN PHYLONET;
+simGTinNetwork sptree NUM_GENE_TREE -ms "/N/u/moyu/BigRed200/bin/msdir/ms";
+END;
