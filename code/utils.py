@@ -340,9 +340,10 @@ class build_gene_tree():
 
 #%% Class for calculating likelihood for continous trait
 class tree_llh_continuous():
-    def __init__(self, treeobj):
-        self.tree = copy.deepcopy(treeobj, vec_size=100)
+    def __init__(self, treeobj, vec_size=100):
+        self.tree = copy.deepcopy(treeobj)
         self.tree.root = self.tree.nodes()[0]
+        self.leaves = sorted(self.tree.leaf_nodes(), key= lambda x: x.taxon.label)
         self.ordered_vertices = [x for x in self.tree.postorder_node_iter()]
         
         self.node_to_num = {n:i for i, n in \
