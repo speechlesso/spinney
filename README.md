@@ -38,7 +38,7 @@ The output is saved as a JSON file summarizing the optimization results.
 ```
 
 # Ancestral state inference
-After obtaining rate estimates, we can reconstruct ancestral state at given speciation event [(python script)](src/spiNney/ancestral_state.py).
+After obtaining rate estimates, we can reconstruct ancestral state at given speciation event [(python script)](src/spinney/ancestral_state.py).
 
 
 
