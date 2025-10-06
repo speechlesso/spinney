@@ -1,0 +1,5 @@
+dendropy==5.0
+scipy==1.16
+pandas==2.3
+matplotlib
+seaborn

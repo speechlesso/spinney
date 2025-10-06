@@ -1,0 +1,5 @@
+{"n_trees": 1, "minimize_success": true, "rate_0": 4.417672379487654, "condition": "example_st_1p", "trait_idx": 0}
+{"n_trees": 1, "minimize_success": true, "rate_0": 2.1983112076704163, "condition": "example_st_1p", "trait_idx": 1}
+{"n_trees": 1, "minimize_success": true, "rate_0": 1.1799972035834885, "condition": "example_st_1p", "trait_idx": 2}
+{"n_trees": 1, "minimize_success": true, "rate_0": 6.418279971626321, "condition": "example_st_1p", "trait_idx": 3}
+{"n_trees": 1, "minimize_success": true, "rate_0": 1.7878607982122288, "condition": "example_st_1p", "trait_idx": 4}
